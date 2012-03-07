@@ -1,0 +1,28 @@
+# Number of threads that is available
+if [[ -r /proc/cpuinfo ]]; then
+	# for cygwin based environments
+	export PROC_CORES=$(grep "^processor" -c /proc/cpuinfo)
+else
+	# for mingw based environments
+	export PROC_CORES=$(/c/Windows/syswow64/WindowsPowerShell/v1.0/powershell.exe get-wmiobject Win32_ComputerSystem\|format-list *proc* | grep 'Logical' | sed 's/^.\+ : //')
+fi
+
+# The windows userprofile directory
+if [[ -z "$USERPROFILE" ]]; then
+	if [[ -d "$(cygpath -u 'C:\Users\'$USER)" ]]; then
+		export USERPROFILE='C:\Users\'$USER
+	else
+		export USERPROFILE="$HOME"
+	fi
+fi
+
+if [[ -z "$APPDATA" ]] && [[ -d "$(cygpath -u 'C:\Users\'$USER'\AppData\Roaming')" ]]; then
+	export APPDATA='C:\Users\'$USER'\AppData\Roaming'
+fi
+
+# use native symlinks when possible
+if [[ -z "$CYGWIN" ]]; then
+	export CYGWIN="winsymlinks:native nodosfilewarning"
+else
+	export CYGWIN="${CYGWIN} winsymlinks:native nodosfilewarning"
+fi

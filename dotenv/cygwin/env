@@ -1,0 +1,62 @@
+# make sure sbin is included
+[[ -d "/usr/sbin" ]] && PATH="${PATH}:/usr/sbin"
+
+# set default editor to notepad++
+if type npp &> /dev/null; then
+	export EDITOR="npp"
+fi
+
+# Remove the windows version of node & npm from the path so we can use the wrapped version
+PATH=$(echo "$PATH" | sed "s/\/c\/Program Files\/nodejs\/\?:\?//")
+PATH=$(echo "$PATH" | sed "s/\/c\/Users\/$USER\/AppData\/Roaming\/npm\/\?:\?//")
+
+# add npm & nodejs to path if possible
+if [[ -d "/c/Users/$USER/AppData/Roaming/npm" ]]; then
+	NODE_BIN_PATH=$(cygpath -u "c:/Program Files/nodejs/")
+	# for looking up global variables
+	export NODE_PATH=$(cygpath -wa "/c/Users/$USER/AppData/Roaming/npm")
+	if [[ -d "$(cygpath -u "c:/Program Files/iojs/")" ]]; then
+		NODE_BIN_PATH=$(cygpath -u "c:/Program Files/iojs/")
+	fi
+	export NODE_BIN_PATH
+	PATH="$PATH:$NODE_BIN_PATH:/c/Users/$USER/AppData/Roaming/npm/"
+	function npm () {
+		local NPM_APPDATA=$APPDATA
+		local NPM_TMP=$TMP
+		local NPM_TEMP=$TEMP
+		local NPM_CMD
+		local NPM_RUN_PATH=$PATH
+
+		# if we want to run npm install/update with git paths, cygwin git
+		# cannot handle the windows paths, so instead we must rely on a wrapper
+		# to be installed
+		NPM_RUN_PATH="$HOME/.dotenv/cygwin/npm-fix/:$PATH"
+
+		# add the proper APPDATA directory
+		if [[ -d "C:\\Users\\$USER\\AppData\\Roaming" ]]; then
+			NPM_APPDATA="C:\\Users\\$USER\\AppData\\Roaming"
+		else
+			NPM_APPDATA="$(cygpath -w "$NODE_BIN_PATH")"
+		fi
+
+		# use the windows %TMP% and %TEMP% dirs
+		if [[ -d "C:\\Users\\$USER\\AppData\\Local\\Temp" ]]; then
+			NPM_TMP="C:\\Users\\$USER\\AppData\\Local\\Temp"
+			NPM_TEMP="C:\\Users\\$USER\\AppData\\Local\\Temp"
+		fi
+
+		# make sure we're using the latest npm command
+		if [[ -f "$APPDATA\\npm\\node_modules\\npm\\bin\\npm.cmd" ]]; then
+			NPM_CMD="/c/Users/$USER/AppData/Roaming/npm/npm.cmd"
+		else
+			NPM_CMD="${NODE_BIN_PATH%/}/npm.cmd"
+		fi
+
+		TMP="$NPM_TMP" \
+		TEMP="$NPM_TEMP" \
+		APPDATA="$NPM_APPDATA" \
+		PATH="$NODE_BIN_PATH:/c/Users/$USER/AppData/Roaming/npm/:/c/Python27/:$NPM_RUN_PATH" \
+			"$NPM_CMD" "$@"
+	}
+	export -f npm
+fi
