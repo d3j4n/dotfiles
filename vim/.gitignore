@@ -2,5 +2,6 @@
 *
 # except:
 !.gitignore
-!.vimrc
+!vimrc
 !colors/solarized.vim
+
